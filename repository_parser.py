@@ -14,6 +14,12 @@ class RepositoryParser:
     def parse_repository(self, repository_path):
         self.functions = []
 
+        if not os.path.exists(repository_path):
+            raise FileNotFoundError("Path does not exist")
+
+        if not os.path.isdir(repository_path):
+            raise NotADirectoryError("Path is not a directory")
+
         self._parse_directory(repository_path)
 
         return self.functions
@@ -30,8 +36,12 @@ class RepositoryParser:
 
             elif os.path.isfile(element_path):
                 if element_name.endswith(".py"):
-                    functions_from_file = self.python_parser.parse_file(
-                        element_path
-                    )
+                    try:
+                        functions_from_file = self.python_parser.parse_file(
+                            element_path
+                        )
 
-                    self.functions.extend(functions_from_file)
+                        self.functions.extend(functions_from_file)
+
+                    except (SyntaxError, OSError, UnicodeDecodeError):
+                        print("Could not parse:", element_path)

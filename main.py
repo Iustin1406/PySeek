@@ -1,18 +1,28 @@
+import sys
+
+from repository_indexer import RepositoryIndexer
 from search_engine import SearchEngine
 
 
 def main():
-    repository_path = "."
-    query = "where do we retry failed HTTP requests?"
+    command = sys.argv[1]
 
-    search_engine = SearchEngine()
-    results = search_engine.search(repository_path, query)
+    if command == "index":
+        repository_path = sys.argv[2]
 
-    for result in results:
-        print(result["function_name"])
-        print(result["score"])
-        print(result["function_filepath"])
-        print()
+        indexer = RepositoryIndexer()
+        indexer.index_repository(repository_path)
+
+        print("Repository indexed")
+
+    elif command == "search":
+        query = sys.argv[2]
+
+        search_engine = SearchEngine()
+        results = search_engine.search(query)
+
+        for result in results:
+            print(result)
 
 
 if __name__ == "__main__":

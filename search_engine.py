@@ -1,45 +1,34 @@
-from repository_parser import RepositoryParser
+from database import Database
 from embedder import Embedder
 
+
 class SearchEngine:
-    def search(self,repository_path, query):
-
-        repository_parser = RepositoryParser()
-
-        functions = repository_parser.parse_repository(repository_path)
+    def search(self, query):
+        query = query.strip()
+        if query == "":
+            raise ValueError("Empty query")
 
         embedder = Embedder()
+        query_embedding = embedder.embed_query(query)[0]
 
-        function_embeddings = embedder.embed_functions(functions)
+        database = Database()
+        results = database.search(query_embedding)
 
-        query_embedding = embedder.embed_query(query)
+        processed_results = self.format_results(results)
+        database.close()
 
-        similarities = embedder.model.similarity(
-            query_embedding,
-            function_embeddings
-        )
+        return processed_results
 
-        scores = similarities[0]
-
-        sorted_indexes = sorted(
-            range(len(scores)),
-            key=lambda index: scores[index].item(),
-            reverse=True
-        )
-
-        results=[]
-
-        for index in sorted_indexes[:5]:
-            function = functions[index]
-            score = scores[index].item()
-
-            result={
-                "score":score,
-                "function_name":function.name,
-                "function_filepath":function.filepath,
-                "function_scope":function.scope_path,
-            }
-
-            results.append(result)
+    def format_results(self,db_rows):
+        results = []
+        for row in db_rows:
+            results.append(
+                {
+                    "function_name": row[0],
+                    "filepath": row[1],
+                    "scope": row[2],
+                    "score": row[3]
+                }
+            )
 
         return results
