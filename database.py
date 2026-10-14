@@ -7,54 +7,62 @@ class Database:
         self.connection = psycopg.connect("dbname=pyseek")
         register_vector(self.connection)
 
-    def save_function(self, function, embedding):
+    #delete old functions from an already indexed repo and save the new version of it
+    def replace_repository_functions(
+            self,
+            repository_path,
+            functions,
+            embeddings
+    ):
         cursor = self.connection.cursor()
 
-        cursor.execute(
-            """
-            INSERT INTO code_units
-            (name, filepath, start_line, end_line, scope_path, source_code, embedding)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """,
-            (
-                function.name,
-                function.filepath,
-                function.start_line,
-                function.end_line,
-                function.scope_path,
-                function.source_code,
-                embedding
-            )
-        )
-
-        self.connection.commit()
-        cursor.close()
-
-    def save_functions(self, functions, embeddings):
-        cursor = self.connection.cursor()
-
-        for function, embedding in zip(functions, embeddings):
+        try:
             cursor.execute(
                 """
-                INSERT INTO code_units
-                (name, filepath, start_line, end_line, scope_path, source_code, embedding)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                DELETE FROM code_units
+                WHERE repository_path = %s
                 """,
-                (
-                    function.name,
-                    function.filepath,
-                    function.start_line,
-                    function.end_line,
-                    function.scope_path,
-                    function.source_code,
-                    embedding
-                )
+                (repository_path,)
             )
 
-        self.connection.commit()
-        cursor.close()
+            for function, embedding in zip(functions, embeddings):
+                cursor.execute(
+                    """
+                    INSERT INTO code_units
+                    (
+                        repository_path,
+                        name,
+                        filepath,
+                        start_line,
+                        end_line,
+                        scope_path,
+                        source_code,
+                        embedding
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        repository_path,
+                        function.name,
+                        function.filepath,
+                        function.start_line,
+                        function.end_line,
+                        function.scope_path,
+                        function.source_code,
+                        embedding
+                    )
+                )
 
-    def search(self, query_embedding, limit=5):
+            self.connection.commit()
+
+        except Exception:
+            self.connection.rollback()
+            raise
+
+        finally:
+            cursor.close()
+
+    def search(self, query_embedding, repository_path, limit=5):
         cursor = self.connection.cursor()
 
         cursor.execute(
@@ -62,11 +70,13 @@ class Database:
             SELECT name, filepath, scope_path,
                    1 - (embedding <=> %s) AS score
             FROM code_units
+            WHERE repository_path = %s
             ORDER BY embedding <=> %s
             LIMIT %s
             """,
             (
                 query_embedding,
+                repository_path,
                 query_embedding,
                 limit
             )
