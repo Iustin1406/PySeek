@@ -13,11 +13,11 @@ app = FastAPI()
 
 
 @app.get("/search")
-def search(query: str):
+def search(query: str, repository_path: str):
     search_engine = SearchEngine()
 
     try:
-        return search_engine.search(query)
+        return search_engine.search(query, repository_path)
 
     except ValueError as error:
         raise HTTPException(

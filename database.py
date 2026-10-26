@@ -67,7 +67,7 @@ class Database:
 
         cursor.execute(
             """
-            SELECT name, filepath, scope_path,
+            SELECT name, filepath, scope_path, start_line,
                    1 - (embedding <=> %s) AS score
             FROM code_units
             WHERE repository_path = %s

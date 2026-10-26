@@ -36,7 +36,8 @@ class SearchEngine:
                     "function_name": row[0],
                     "filepath": row[1],
                     "scope": row[2],
-                    "score": row[3]
+                    "start_line": row[3],
+                    "score": row[4]
                 }
             )
 
