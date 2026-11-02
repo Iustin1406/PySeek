@@ -1,5 +1,6 @@
 import os
 
+from code_text_analyzer import CodeTextAnalyzer
 from database import Database
 from embedder import Embedder
 from repository_parser import RepositoryParser
@@ -13,13 +14,23 @@ class RepositoryIndexer:
         repository_parser = RepositoryParser()
         functions = repository_parser.parse_repository(repository_path)
 
+        #semantic representation
         embedder = Embedder()
         embedded_functions = embedder.embed_functions(functions)
+
+        #lexical representation
+        code_text_analyzer = CodeTextAnalyzer()
+        analyzed_functions = []
+
+        for function in functions:
+            analyzed_function = code_text_analyzer.analyze(function)
+            analyzed_functions.append(analyzed_function)
 
         database = Database()
         database.replace_repository_functions(
             repository_path,
             functions,
-            embedded_functions
+            embedded_functions,
+            analyzed_functions
         )
         database.close()
