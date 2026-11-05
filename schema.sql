@@ -1,12 +1,30 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 
-CREATE TABLE IF NOT EXISTS code_units (
+
+CREATE TABLE IF NOT EXISTS indexed_files (
     id SERIAL PRIMARY KEY,
 
     repository_path TEXT NOT NULL,
+    filepath TEXT NOT NULL,
+
+    content_hash TEXT NOT NULL,
+    index_version INTEGER NOT NULL,
+
+    indexed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE (repository_path, filepath)
+);
+
+
+CREATE TABLE IF NOT EXISTS code_units (
+    id SERIAL PRIMARY KEY,
+
+    indexed_file_id INTEGER NOT NULL
+        REFERENCES indexed_files(id)
+        ON DELETE CASCADE,
 
     name TEXT NOT NULL,
-    filepath TEXT NOT NULL,
+
     start_line INTEGER,
     end_line INTEGER,
 
@@ -25,30 +43,47 @@ CREATE TABLE IF NOT EXISTS code_units (
 
     search_vector tsvector GENERATED ALWAYS AS (
         setweight(
-            to_tsvector('simple', coalesce(lexical_name, '')),
+            to_tsvector(
+                'simple',
+                coalesce(lexical_name, '')
+            ),
             'A'
         )
         ||
         setweight(
-            to_tsvector('simple', coalesce(lexical_scope, '')),
+            to_tsvector(
+                'simple',
+                coalesce(lexical_scope, '')
+            ),
             'B'
         )
         ||
         setweight(
-            to_tsvector('simple', coalesce(lexical_docstring, '')),
+            to_tsvector(
+                'simple',
+                coalesce(lexical_docstring, '')
+            ),
             'C'
         )
         ||
         setweight(
-            to_tsvector('simple', coalesce(lexical_source, '')),
+            to_tsvector(
+                'simple',
+                coalesce(lexical_source, '')
+            ),
             'D'
         )
     ) STORED
 );
 
-CREATE INDEX IF NOT EXISTS idx_code_units_repository_path
-ON code_units(repository_path);
+
+CREATE INDEX IF NOT EXISTS idx_indexed_files_repository_path
+ON indexed_files(repository_path);
+
+
+CREATE INDEX IF NOT EXISTS idx_code_units_indexed_file_id
+ON code_units(indexed_file_id);
+
 
 CREATE INDEX IF NOT EXISTS idx_code_units_search_vector
-ON code_units
-USING GIN(search_vector);
+ON code_units USING GIN(search_vector);

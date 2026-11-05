@@ -36,8 +36,15 @@ class SearchEngine:
 
         database.close()
 
-        semantic_results = self.format_results(semantic_rows)
-        lexical_results = self.format_results(lexical_rows)
+        semantic_results = self.format_results(
+            semantic_rows,
+            repository_path
+        )
+
+        lexical_results = self.format_results(
+            lexical_rows,
+            repository_path
+        )
 
         results = self.reciprocal_rank_fusion(
             semantic_results,
@@ -46,14 +53,19 @@ class SearchEngine:
 
         return results[:5]
 
-    def format_results(self, db_rows):
+    def format_results(self, db_rows, repository_path):
         results = []
 
         for row in db_rows:
+            filepath = os.path.join(
+                repository_path,
+                row[1]
+            )
+
             results.append(
                 {
                     "function_name": row[0],
-                    "filepath": row[1],
+                    "filepath": filepath,
                     "scope": row[2],
                     "start_line": row[3],
                     "score": row[4]
